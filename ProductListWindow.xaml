@@ -1,12 +1,106 @@
-﻿<Window x:Class="UchPR.ProductListWindow"
-        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        xmlns:local="clr-namespace:UchPR"
-        mc:Ignorable="d"
-        Title="ProductListWindow" Height="450" Width="800">
+﻿<Page x:Class="UchPR.ProductListPage"
+      xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+      xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+      Title="Каталог изделий">
     <Grid>
-        
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- Заголовок -->
+        <TextBlock Grid.Row="0" Text="Каталог изделий" 
+                   FontSize="20" FontWeight="Bold" 
+                   HorizontalAlignment="Center" 
+                   Margin="10"/>
+
+        <!-- Панель поиска и фильтров -->
+        <Grid Grid.Row="1" Margin="10">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="200"/>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="150"/>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="150"/>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+
+            <TextBlock Grid.Column="0" Text="Поиск:" VerticalAlignment="Center" Margin="5"/>
+            <TextBox Grid.Column="1" x:Name="txtSearch" Margin="5" TextChanged="TxtSearch_TextChanged"/>
+
+            <TextBlock Grid.Column="2" Text="Категория:" VerticalAlignment="Center" Margin="5"/>
+            <ComboBox Grid.Column="3" x:Name="cmbCategory" Margin="5" SelectionChanged="CmbCategory_SelectionChanged">
+                <ComboBoxItem Content="Все категории"/>
+                <ComboBoxItem Content="Диваны"/>
+                <ComboBoxItem Content="Кресла"/>
+                <ComboBoxItem Content="Стулья"/>
+                <ComboBoxItem Content="Пуфы"/>
+            </ComboBox>
+
+            <CheckBox Grid.Column="4" x:Name="chkAvailable" Content="Только доступные" 
+                      VerticalAlignment="Center" Margin="5" Checked="ChkAvailable_Changed" Unchecked="ChkAvailable_Changed"/>
+
+            <Button Grid.Column="7" x:Name="btnRefresh" Content="Обновить" 
+                    Width="80" Height="25" Margin="5" Click="BtnRefresh_Click"/>
+        </Grid>
+
+        <!-- DataGrid со списком изделий -->
+        <DataGrid Grid.Row="2" x:Name="dgProducts" 
+                  AutoGenerateColumns="False" 
+                  CanUserAddRows="False"
+                  CanUserDeleteRows="False"
+                  SelectionMode="Single"
+                  AlternatingRowBackground="LightGray"
+                  GridLinesVisibility="Horizontal"
+                  HeadersVisibility="Column"
+                  Margin="10">
+            <DataGrid.Columns>
+                <DataGridTextColumn Header="ID" Binding="{Binding productid}" Width="50" IsReadOnly="True"/>
+                <DataGridTextColumn Header="Артикул" Binding="{Binding productarticlenum}" Width="120"/>
+                <DataGridTextColumn Header="Название" Binding="{Binding productname}" Width="200"/>
+                <DataGridTextColumn Header="Категория" Binding="{Binding productcategory}" Width="100"/>
+                <DataGridTextColumn Header="Описание" Binding="{Binding productdescription}" Width="250"/>
+
+                <!-- Информация о доступности -->
+                <DataGridTextColumn Header="Статус производства" Binding="{Binding ProductionStatus}" Width="120" IsReadOnly="True"/>
+                <DataGridTextColumn Header="Доступно к заказу" Binding="{Binding AvailableQuantity}" Width="100" IsReadOnly="True"/>
+
+                <!-- Финансовые данные (только для руководителя) -->
+                <DataGridTextColumn Header="Себестоимость" Binding="{Binding CostPrice}" Width="100" IsReadOnly="True"/>
+                <DataGridTextColumn Header="Цена продажи" Binding="{Binding SalePrice}" Width="100"/>
+                <DataGridTextColumn Header="Маржа %" Binding="{Binding MarginPercent}" Width="80" IsReadOnly="True"/>
+
+                <!-- Время производства -->
+                <DataGridTextColumn Header="Время изг. (дни)" Binding="{Binding productiontime}" Width="100"/>
+
+                <!-- Статус доступности -->
+                <DataGridTemplateColumn Header="Доступность" Width="80">
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                            <Ellipse Width="15" Height="15" Fill="{Binding AvailabilityColor}"/>
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
+            </DataGrid.Columns>
+        </DataGrid>
+
+        <!-- Панель кнопок -->
+        <StackPanel Grid.Row="3" Orientation="Horizontal" 
+                    HorizontalAlignment="Center" Margin="10">
+            <Button x:Name="btnAdd" Content="Добавить изделие" 
+                    Width="120" Height="30" Margin="5" Click="BtnAdd_Click"/>
+            <Button x:Name="btnEdit" Content="Редактировать" 
+                    Width="100" Height="30" Margin="5" Click="BtnEdit_Click"/>
+            <Button x:Name="btnComposition" Content="Состав материалов" 
+                    Width="140" Height="30" Margin="5" Click="BtnComposition_Click"/>
+            <Button x:Name="btnCalculate" Content="Расчет потребности" 
+                    Width="140" Height="30" Margin="5" Click="BtnCalculate_Click"/>
+            <Button x:Name="btnReport" Content="Отчет по изделиям" 
+                    Width="140" Height="30" Margin="5" Click="BtnReport_Click"/>
+        </StackPanel>
     </Grid>
-</Window>
+</Page>

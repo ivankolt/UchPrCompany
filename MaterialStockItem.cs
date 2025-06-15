@@ -27,6 +27,7 @@ namespace UchPR
     {
         public int Code { get; set; }
         public string Name { get; set; }
+        public decimal ConversionFactor { get; set; } = 1.0m;
     }
 
 }

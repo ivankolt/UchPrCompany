@@ -10,11 +10,11 @@ none
 false
 DEBUG;TRACE
 C:\Users\User\source\repos\UchPR\UchPR\App.xaml
-8872521890
+12735665859
 
-19-1547762926
+23-1042002843
 31-479136917
-LoginWindow.xaml;MainWindow.xaml;MaterialReceiptWindow.xaml;ProductsPage.xaml;RegistrationWindow.xaml;ScrapLogWindow.xaml;ThresholdSettingsWindow.xaml;WarehousePage.xaml;
+AccessoryListWindow.xaml;FabricListWindow.xaml;LoginWindow.xaml;MainWindow.xaml;MaterialReceiptWindow.xaml;ProductionWindow.xaml;ProductListWindow.xaml;ProductsPage.xaml;RegistrationWindow.xaml;ScrapLogWindow.xaml;ThresholdSettingsWindow.xaml;WarehousePage.xaml;
 
 False
 

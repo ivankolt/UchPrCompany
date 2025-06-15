@@ -61,3 +61,11 @@ C:\Users\User\source\repos\UchPR\UchPR\obj\Debug\ScrapLogWindow.g.cs
 C:\Users\User\source\repos\UchPR\UchPR\obj\Debug\ThresholdSettingsWindow.g.cs
 C:\Users\User\source\repos\UchPR\UchPR\obj\Debug\UchPR_MarkupCompile.lref
 C:\Users\User\source\repos\UchPR\UchPR\obj\Debug\App.baml
+C:\Users\User\source\repos\UchPR\UchPR\obj\Debug\AccessoryListWindow.baml
+C:\Users\User\source\repos\UchPR\UchPR\obj\Debug\FabricListWindow.baml
+C:\Users\User\source\repos\UchPR\UchPR\obj\Debug\ProductionWindow.baml
+C:\Users\User\source\repos\UchPR\UchPR\obj\Debug\ProductListWindow.baml
+C:\Users\User\source\repos\UchPR\UchPR\obj\Debug\AccessoryListWindow.g.cs
+C:\Users\User\source\repos\UchPR\UchPR\obj\Debug\FabricListWindow.g.cs
+C:\Users\User\source\repos\UchPR\UchPR\obj\Debug\ProductionWindow.g.cs
+C:\Users\User\source\repos\UchPR\UchPR\obj\Debug\ProductListWindow.g.cs

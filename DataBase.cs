@@ -3,6 +3,7 @@ using Npgsql;
 using NpgsqlTypes;
 using System;
 using System.Collections.Generic;
+using System.Data;
 using System.Windows; // Уберем эту зависимость, если возможно
 
 namespace UchPR
@@ -408,6 +409,65 @@ namespace UchPR
         }
 
 
+        public DataTable GetData(string query, NpgsqlParameter[] parameters = null)
+        {
+            DataTable dataTable = new DataTable();
+
+            try
+            {
+                using (var conn = new NpgsqlConnection(connectionString))
+                {
+                    conn.Open();
+                    using (var command = new NpgsqlCommand(query, conn))
+                    {
+                        if (parameters != null)
+                        {
+                            command.Parameters.AddRange(parameters);
+                        }
+
+                        using (var adapter = new NpgsqlDataAdapter(command))
+                        {
+                            adapter.Fill(dataTable);
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Ошибка выполнения запроса: {ex.Message}");
+            }
+
+            return dataTable;
+        }
+
+        public int ExecuteQuery(string query, NpgsqlParameter[] parameters = null)
+        {
+            int result = 0;
+
+            try
+            {
+                using (var conn = new NpgsqlConnection(connectionString))
+                {
+                    conn.Open();
+                    using (var command = new NpgsqlCommand(query, conn))
+                    {
+                        if (parameters != null)
+                        {
+                            command.Parameters.AddRange(parameters);
+                        }
+
+                        result = command.ExecuteNonQuery();
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Ошибка выполнения команды: {ex.Message}");
+            }
+
+            return result;
+        }
+
         public bool WriteOffMaterial(string materialArticle, decimal quantityToWriteOff, string materialType, string userLogin)
         {
             try
@@ -637,6 +697,33 @@ namespace UchPR
             }
         }
 
+        public object GetScalarValue(string query, NpgsqlParameter[] parameters = null)
+        {
+            object result = null;
+
+            try
+            {
+                using (var conn = new NpgsqlConnection(connectionString))
+                {
+                    conn.Open();
+                    using (var command = new NpgsqlCommand(query, conn))
+                    {
+                        if (parameters != null)
+                        {
+                            command.Parameters.AddRange(parameters);
+                        }
+
+                        result = command.ExecuteScalar();
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Ошибка выполнения скалярного запроса: {ex.Message}");
+            }
+
+            return result;
+        }
 
 
         public List<ProductCompositionItem> GetProductComposition(string productArticle)
