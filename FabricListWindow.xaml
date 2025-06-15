@@ -54,9 +54,9 @@
                   HeadersVisibility="Column"
                   Margin="10">
             <DataGrid.Columns>
-                <DataGridTextColumn Header="ID" Binding="{Binding fabricid}" Width="50" IsReadOnly="True"/>
-                <DataGridTextColumn Header="Артикул" Binding="{Binding fabricarticlenum}" Width="100"/>
-                <DataGridTextColumn Header="Название" Binding="{Binding fabricname}" Width="150"/>
+                <DataGridTextColumn Header="ID" Binding="{Binding fabric_article}" Width="50" IsReadOnly="True"/>
+                <DataGridTextColumn Header="Артикул" Binding="{Binding fabric_article}" Width="100"/>
+                <DataGridTextColumn Header="Название" Binding="{Binding fabric_name}" Width="150"/>
                 <DataGridTextColumn Header="Цвет" Binding="{Binding ColorName}" Width="100" IsReadOnly="True"/>
                 <DataGridTextColumn Header="Рисунок" Binding="{Binding PatternName}" Width="100" IsReadOnly="True"/>
                 <DataGridTextColumn Header="Состав" Binding="{Binding CompositionName}" Width="120" IsReadOnly="True"/>
@@ -86,6 +86,7 @@
                     </DataGridTemplateColumn.CellTemplate>
                 </DataGridTemplateColumn>
             </DataGrid.Columns>
+
         </DataGrid>
 
         <!-- Панель кнопок -->

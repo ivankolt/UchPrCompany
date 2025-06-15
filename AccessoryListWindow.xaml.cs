@@ -71,41 +71,64 @@ namespace UchPR
             try
             {
                 string query = @"
-                    SELECT 
-                        a.accessoryid,
-                        a.accessoryarticlenum,
-                        a.accessoryname,
-                        a.accessorytype,
-                        c.colorname as ColorName,
-                        COALESCE(aw.quantity, 0) as StockQuantity,
-                        COALESCE(aw.totalcost, 0) as TotalCost,
-                        CASE 
-                            WHEN COALESCE(aw.quantity, 0) > 0 
-                            THEN COALESCE(aw.totalcost, 0) / aw.quantity 
-                            ELSE 0 
-                        END as AveragePrice,
-                        u.unitname as AccountingUnitName,
-                        COALESCE(a.minstock, 0) as MinStock,
-                        COALESCE(a.scraplimit, 0) as ScrapLimit
-                    FROM accessory a
-                    LEFT JOIN accessorywarehouse aw ON a.accessoryid = aw.accessoryid
-                    LEFT JOIN colors c ON a.accessorycolorid = c.colorid
-                    LEFT JOIN unitofmeasurement u ON a.accountingunitid = u.unitid
-                    ORDER BY a.accessoryarticlenum";
+            SELECT 
+                a.article AS accessory_article,
+                fan.name AS accessory_name,
+                ft.name AS accessory_type,
+                c.name AS ColorName,
+                COALESCE(aw.quantity, 0) AS StockQuantity,
+                COALESCE(aw.total_cost, 0) AS TotalCost,
+                CASE 
+                    WHEN COALESCE(aw.quantity, 0) > 0 
+                    THEN COALESCE(aw.total_cost, 0) / aw.quantity 
+                    ELSE 0 
+                END AS AveragePrice,
+                uom.name AS AccountingUnitName,
+                0 AS MinStock,
+                0 AS ScrapLimit
+            FROM 
+                public.accessory a
+            JOIN 
+                public.furnitureaccessoryname fan ON a.name_id = fan.id
+            LEFT JOIN 
+                public.furnituretype ft ON a.type_id = ft.id
+            LEFT JOIN 
+                public.colors c ON a.color_id = c.id
+            LEFT JOIN 
+                public.unitofmeasurement uom ON a.unit_of_measurement_id = uom.code
+            LEFT JOIN 
+                (SELECT accessory_article, SUM(quantity) as quantity, SUM(total_cost) as total_cost 
+                 FROM public.accessorywarehouse 
+                 GROUP BY accessory_article) aw ON a.article = aw.accessory_article
+            ORDER BY 
+                a.article";
 
                 accessoriesTable = database.GetData(query);
 
-                // Добавляем вычисляемые поля
+                if (accessoriesTable == null)
+                {
+                    MessageBox.Show("Ошибка: не удалось получить данные из базы данных", "Ошибка загрузки");
+                    accessoriesTable = new DataTable();
+                    return;
+                }
+
                 AddCalculatedColumns();
-                ProcessAccessoryData();
+
+                if (accessoriesTable.Rows.Count > 0)
+                {
+                    ProcessAccessoryData();
+                }
 
                 dgAccessories.ItemsSource = accessoriesTable.DefaultView;
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Ошибка загрузки данных о фурнитуре: {ex.Message}");
+                MessageBox.Show($"Ошибка загрузки данных о фурнитуре: {ex.Message}", "Критическая ошибка");
+                accessoriesTable = new DataTable();
+                dgAccessories.ItemsSource = accessoriesTable.DefaultView;
             }
         }
+
 
         private void AddCalculatedColumns()
         {

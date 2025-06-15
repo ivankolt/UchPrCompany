@@ -41,7 +41,8 @@ namespace UchPR
         {
             try
             {
-                var query = "SELECT unitid as Code, unitname as Name, COALESCE(conversionfactor, 1) as ConversionFactor FROM unitofmeasurement ORDER BY unitname";
+                // ИСПРАВЛЕНО: Используем правильные имена столбцов: 'code', 'name', 'conversionfactor'
+                var query = "SELECT code, name, conversionfactor FROM public.unitofmeasurement ORDER BY name";
                 var unitsData = database.GetData(query);
 
                 units = new List<UnitOfMeasurement>();
@@ -51,9 +52,9 @@ namespace UchPR
                 {
                     var unit = new UnitOfMeasurement
                     {
-                        Code = Convert.ToInt32(row["Code"]),
-                        Name = row["Name"].ToString(),
-                        ConversionFactor = Convert.ToDecimal(row["ConversionFactor"])
+                        Code = Convert.ToInt32(row["code"]),
+                        Name = row["name"].ToString(),
+                        ConversionFactor = Convert.ToDecimal(row["conversionfactor"])
                     };
                     units.Add(unit);
                     cmbUnit.Items.Add(unit.Name);
@@ -67,18 +68,20 @@ namespace UchPR
             }
         }
 
+
         private void LoadCompositions()
         {
             try
             {
-                var query = "SELECT * FROM composition ORDER BY compositionname";
+                // ИСПРАВЛЕНО: Используем правильное имя столбца 'name' из таблицы-справочника
+                var query = "SELECT id, name FROM public.composition ORDER BY name";
                 var compositionsData = database.GetData(query);
 
                 cmbComposition.Items.Add("Все составы");
 
                 foreach (DataRow row in compositionsData.Rows)
                 {
-                    cmbComposition.Items.Add(row["compositionname"].ToString());
+                    cmbComposition.Items.Add(row["name"].ToString());
                 }
 
                 cmbComposition.SelectedIndex = 0;
@@ -89,52 +92,88 @@ namespace UchPR
             }
         }
 
+
         private void LoadFabrics()
         {
             try
             {
                 string query = @"
-                    SELECT 
-                        f.fabricid,
-                        f.fabricarticlenum,
-                        f.fabricname,
-                        c.colorname as ColorName,
-                        p.patternname as PatternName,
-                        comp.compositionname as CompositionName,
-                        COALESCE(fw.quantity, 0) as StockQuantity,
-                        COALESCE(fw.totalcost, 0) as TotalCost,
-                        CASE 
-                            WHEN COALESCE(fw.quantity, 0) > 0 
-                            THEN COALESCE(fw.totalcost, 0) / fw.quantity 
-                            ELSE 0 
-                        END as AveragePrice,
-                        u.unitname as AccountingUnitName,
-                        COALESCE(f.minstock, 0) as MinStock,
-                        COALESCE(f.scraplimit, 0) as ScrapLimit
-                    FROM fabric f
-                    LEFT JOIN fabricwarehouse fw ON f.fabricid = fw.fabricid
-                    LEFT JOIN colors c ON f.fabriccolorid = c.colorid
-                    LEFT JOIN pattern p ON f.fabricpatternid = p.patternid
-                    LEFT JOIN composition comp ON f.fabriccompositionid = comp.compositionid
-                    LEFT JOIN unitofmeasurement u ON f.accountingunitid = u.unitid
-                    ORDER BY f.fabricarticlenum";
+            SELECT 
+                f.article AS ""fabric_article"",
+                fn.name AS ""fabric_name"",
+                c.name AS ""ColorName"",
+                p.name AS ""PatternName"",
+                comp.name AS ""CompositionName"",
+                COALESCE(fw.quantity, 0) AS ""StockQuantity"",
+                COALESCE(fw.total_cost, 0) AS ""TotalCost"",
+                CASE 
+                    WHEN COALESCE(fw.quantity, 0) > 0 
+                    THEN ROUND(COALESCE(fw.total_cost, 0) / fw.quantity, 2)
+                    ELSE 0 
+                END AS ""AveragePrice"",
+                uom.name AS ""AccountingUnitName"",
+                COALESCE(f.scrap_threshold, 0) AS ""ScrapLimit"",
+                0 AS ""MinStock""
+            FROM 
+                public.fabric f
+            LEFT JOIN 
+                public.fabricname fn ON f.name_id = fn.code
+            LEFT JOIN 
+                public.colors c ON f.color_id = c.id
+            LEFT JOIN 
+                public.pattern p ON f.pattern_id = p.id
+            LEFT JOIN 
+                public.composition comp ON f.composition_id = comp.id
+            LEFT JOIN 
+                public.unitofmeasurement uom ON f.unit_of_measurement_id = uom.code
+            LEFT JOIN 
+                (SELECT fabric_article, SUM(COALESCE(total_cost, 0)) as total_cost, 
+                        SUM(COALESCE(length, 0) * COALESCE(width, 0)) as quantity
+                 FROM public.fabricwarehouse 
+                 WHERE fabric_article IS NOT NULL
+                 GROUP BY fabric_article) fw ON f.article = fw.fabric_article
+            ORDER BY 
+                f.article";
 
                 fabricsTable = database.GetData(query);
 
-                // Добавляем вычисляемые поля
+                if (fabricsTable == null)
+                {
+                    fabricsTable = new DataTable();
+                }
+
+                // Отладочная информация
+                System.Diagnostics.Debug.WriteLine("Столбцы в fabricsTable:");
+                foreach (DataColumn column in fabricsTable.Columns)
+                {
+                    System.Diagnostics.Debug.WriteLine($"- {column.ColumnName}");
+                }
+
                 AddCalculatedColumns();
-                ProcessFabricData();
+
+                if (fabricsTable.Rows.Count > 0)
+                {
+                    ProcessFabricData();
+                }
 
                 dgFabrics.ItemsSource = fabricsTable.DefaultView;
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Ошибка загрузки данных о тканях: {ex.Message}");
+                MessageBox.Show($"Ошибка загрузки данных о тканях: {ex.Message}", "Критическая ошибка");
+                fabricsTable = new DataTable();
+                dgFabrics.ItemsSource = fabricsTable.DefaultView;
             }
         }
 
+
         private void AddCalculatedColumns()
         {
+            if (fabricsTable == null)
+            {
+                fabricsTable = new DataTable();
+            }
+
             if (!fabricsTable.Columns.Contains("ConvertedQuantity"))
                 fabricsTable.Columns.Add("ConvertedQuantity", typeof(decimal));
 
@@ -147,31 +186,44 @@ namespace UchPR
 
         private void ProcessFabricData()
         {
+            if (fabricsTable == null || fabricsTable.Rows == null)
+            {
+                return;
+            }
+
             foreach (DataRow row in fabricsTable.Rows)
             {
-                decimal stockQuantity = Convert.ToDecimal(row["StockQuantity"]);
-                decimal minStock = Convert.ToDecimal(row["MinStock"]);
-                decimal scrapLimit = Convert.ToDecimal(row["ScrapLimit"]);
-
-                // Конвертация количества в выбранную единицу
-                if (selectedUnit != null)
+                try
                 {
-                    row["ConvertedQuantity"] = stockQuantity * selectedUnit.ConversionFactor;
-                    row["SelectedUnitName"] = selectedUnit.Name;
-                }
-                else
-                {
-                    row["ConvertedQuantity"] = stockQuantity;
-                    row["SelectedUnitName"] = row["AccountingUnitName"];
-                }
+                    // ИСПРАВЛЕНО: используем правильные имена столбцов
+                    decimal stockQuantity = Convert.ToDecimal(row["StockQuantity"] ?? 0);
+                    decimal minStock = Convert.ToDecimal(row["MinStock"] ?? 0);
+                    decimal scrapLimit = Convert.ToDecimal(row["ScrapLimit"] ?? 0);
 
-                // Определение статуса остатка
-                if (stockQuantity <= scrapLimit)
-                    row["StatusColor"] = "#FF0000"; // Красный - обрезки
-                else if (stockQuantity <= minStock)
-                    row["StatusColor"] = "#FFA500"; // Оранжевый - критический остаток
-                else
-                    row["StatusColor"] = "#00FF00"; // Зеленый - нормальный остаток
+                    // Конвертация количества в выбранную единицу
+                    if (selectedUnit != null)
+                    {
+                        row["ConvertedQuantity"] = stockQuantity * selectedUnit.ConversionFactor;
+                        row["SelectedUnitName"] = selectedUnit.Name;
+                    }
+                    else
+                    {
+                        row["ConvertedQuantity"] = stockQuantity;
+                        row["SelectedUnitName"] = row["AccountingUnitName"]?.ToString() ?? "";
+                    }
+
+                    // Определение статуса остатка
+                    if (stockQuantity <= scrapLimit)
+                        row["StatusColor"] = "#FF0000"; // Красный - обрезки
+                    else if (stockQuantity <= minStock)
+                        row["StatusColor"] = "#FFA500"; // Оранжевый - критический остаток
+                    else
+                        row["StatusColor"] = "#00FF00"; // Зеленый - нормальный остаток
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"Ошибка обработки строки: {ex.Message}");
+                }
             }
         }
 
@@ -200,33 +252,7 @@ namespace UchPR
             ApplyFilters();
         }
 
-        private void ApplyFilters()
-        {
-            if (fabricsTable == null) return;
-
-            string filter = "";
-            var conditions = new List<string>();
-
-            // Фильтр по поиску
-            if (!string.IsNullOrWhiteSpace(txtSearch.Text))
-            {
-                conditions.Add($"(fabricarticlenum LIKE '%{txtSearch.Text}%' OR fabricname LIKE '%{txtSearch.Text}%')");
-            }
-
-            // Фильтр по составу
-            if (cmbComposition.SelectedIndex > 0)
-            {
-                conditions.Add($"CompositionName = '{cmbComposition.SelectedItem}'");
-            }
-
-            if (conditions.Count > 0)
-            {
-                filter = string.Join(" AND ", conditions);
-            }
-
-            fabricsTable.DefaultView.RowFilter = filter;
-        }
-
+       
         private void BtnRefresh_Click(object sender, RoutedEventArgs e)
         {
             LoadFabrics();
@@ -241,6 +267,64 @@ namespace UchPR
                 LoadFabrics();
             }
         }
+        private void ApplyFilters()
+        {
+            if (fabricsTable == null) return;
+
+            string filter = "";
+            var conditions = new List<string>();
+
+            // Фильтр по поиску
+            if (!string.IsNullOrWhiteSpace(txtSearch.Text))
+            {
+                string searchText = txtSearch.Text.Replace("'", "''"); // Экранируем одинарные кавычки
+                var searchConditions = new List<string>();
+
+                // Для числового поля fabric_article используем точное совпадение или CONVERT
+                if (int.TryParse(searchText, out int articleNumber))
+                {
+                    searchConditions.Add($"fabric_article = {articleNumber}");
+                }
+
+                // Для строкового поля fabric_name используем LIKE
+                if (ColumnExists("fabric_name"))
+                {
+                    searchConditions.Add($"fabric_name LIKE '%{searchText}%'");
+                }
+
+                if (searchConditions.Count > 0)
+                {
+                    conditions.Add($"({string.Join(" OR ", searchConditions)})");
+                }
+            }
+
+            // Фильтр по составу
+            if (cmbComposition.SelectedIndex > 0 && ColumnExists("CompositionName"))
+            {
+                string selectedComposition = cmbComposition.SelectedItem.ToString().Replace("'", "''");
+                conditions.Add($"CompositionName = '{selectedComposition}'");
+            }
+
+            if (conditions.Count > 0)
+            {
+                filter = string.Join(" AND ", conditions);
+            }
+
+            try
+            {
+                fabricsTable.DefaultView.RowFilter = filter;
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Ошибка применения фильтра: {ex.Message}", "Ошибка фильтрации");
+                fabricsTable.DefaultView.RowFilter = ""; // Сбрасываем фильтр при ошибке
+            }
+        }
+
+        private bool ColumnExists(string columnName)
+        {
+            return fabricsTable != null && fabricsTable.Columns.Contains(columnName);
+        }
 
         private void BtnEdit_Click(object sender, RoutedEventArgs e)
         {
@@ -251,10 +335,10 @@ namespace UchPR
             }
 
             var selectedRow = ((DataRowView)dgFabrics.SelectedItem).Row;
-            int fabricId = Convert.ToInt32(selectedRow["fabricid"]);
+            int fabricId = Convert.ToInt32(selectedRow["fabric_article"]); // Теперь это число!
 
-           // var editWindow = new FabricEditWindow(fabricId);
-           // if (editWindow.ShowDialog() == true)
+          //  var editWindow = new FabricEditWindow(fabricId);
+          //  if (editWindow.ShowDialog() == true)
             {
                 LoadFabrics();
             }
